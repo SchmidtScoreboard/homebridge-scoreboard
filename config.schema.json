@@ -1,15 +1,18 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "SchmidtScoreboard",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string",
-        "required": true,
-        "default": "Example Dynamic Platform"
+      "scoreboards": {
+        "type": "array",
+        "items": {
+          "title": "Scoreboard",
+          "type": "string",
+          "description": "Either the sync code displayed on the Scoreboard, or the IP address of your Scoreboard",
+          "required": true
+        }
       }
     }
   }
