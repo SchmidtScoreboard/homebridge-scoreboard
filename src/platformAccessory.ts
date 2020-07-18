@@ -2,11 +2,14 @@ import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallb
 
 import { SchmidtScoreboardPlatform } from './platform';
 
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+
 enum ScoreboardMode {
-  Hockey,
-  Baseball,
-  Clock
+  Hockey = 0,
+  Baseball = 1,
+  Clock = 50
 }
+
 
 /**
  * Platform Accessory
@@ -15,19 +18,19 @@ enum ScoreboardMode {
  */
 export class SchmidtScoreboardAccessory {
   private service: Service;
+  private url: string;
 
   constructor(
     private readonly platform: SchmidtScoreboardPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
+    this.url = "http://" + this.accessory.displayName + ":5005/";
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'MarkSchmidt')
       .setCharacteristic(this.platform.Characteristic.Model, 'SS-001')
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
     this.service = this.accessory.getService(this.platform.Service.Television) ||
       this.accessory.addService(this.platform.Service.Television);
 
@@ -50,18 +53,27 @@ export class SchmidtScoreboardAccessory {
 
     // handle input source changes
     this.service.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
-      .on('set', (newValue, callback) => {
+      .on('set', async (newValue, callback) => {
         this.platform.log.info('set Active Identifier => setNewValue: ' + newValue);
-        callback(null);
+        try {
+          let response = await this.sendScoreboardRequest("setSport", { "sport": newValue });
+          callback(null);
+        } catch {
+          callback(Error("Failed to connect"));
+        }
       })
-      .on('get', (callback) => {
-        this.platform.log.info("Calling get input");
-        callback(null, ScoreboardMode.Baseball);
+      .on('get', async (callback) => {
+        try {
+          let response = await this.sendScoreboardRequest("");
+          callback(null, response["screen_on"]);
+        } catch {
+          callback("Connection error");
+        }
       });
 
     const hockeyService = this.accessory.getService("Hockey") || this.accessory.addService(this.platform.Service.InputSource, 'hockey', 'Hockey');
     hockeyService
-      .setCharacteristic(this.platform.Characteristic.Identifier, 1)
+      .setCharacteristic(this.platform.Characteristic.Identifier, 0)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Hockey')
       .setCharacteristic(this.platform.Characteristic.CurrentVisibilityState, this.platform.Characteristic.CurrentVisibilityState.SHOWN)
       .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
@@ -70,7 +82,7 @@ export class SchmidtScoreboardAccessory {
 
     const baseballService = this.accessory.getService("Baseball") || this.accessory.addService(this.platform.Service.InputSource, 'baseball', 'Baseball');
     baseballService
-      .setCharacteristic(this.platform.Characteristic.Identifier, 2)
+      .setCharacteristic(this.platform.Characteristic.Identifier, 1)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Baseball')
       .setCharacteristic(this.platform.Characteristic.CurrentVisibilityState, this.platform.Characteristic.CurrentVisibilityState.SHOWN)
       .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
@@ -79,7 +91,7 @@ export class SchmidtScoreboardAccessory {
 
     const clockService = this.accessory.getService("Clock") || this.accessory.addService(this.platform.Service.InputSource, 'clock', 'Clock');
     clockService
-      .setCharacteristic(this.platform.Characteristic.Identifier, 3)
+      .setCharacteristic(this.platform.Characteristic.Identifier, 50)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Clock')
       .setCharacteristic(this.platform.Characteristic.CurrentVisibilityState, this.platform.Characteristic.CurrentVisibilityState.SHOWN)
       .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
@@ -97,13 +109,15 @@ export class SchmidtScoreboardAccessory {
    * Handle "SET" requests from HomeKit
    * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
    */
-  setOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
 
     // implement your own code to turn your device on/off
-    this.platform.log.info("Value is " + value);
-
-    // you must call the callback function
-    callback(null);
+    try {
+      let response = await this.sendScoreboardRequest("setPower", { "screen_on": value });
+      callback(null);
+    } catch {
+      callback(Error("Failed to connect"));
+    }
   }
 
   /**
@@ -115,18 +129,32 @@ export class SchmidtScoreboardAccessory {
    * 
    * If your device takes time to respond you should update the status of your device
    * asynchronously instead using the `updateCharacteristic` method instead.
-
+  
    * @example
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
-  getOn(callback: CharacteristicGetCallback) {
-
-
-
-    // you must call the callback function
-    // the first argument should be null if there were no errors
-    // the second argument should be the value to return
-    callback(null, false);
+  async getOn(callback: CharacteristicGetCallback) {
+    try {
+      let response = await this.sendScoreboardRequest("");
+      callback(null, response["screen_on"]);
+    } catch {
+      callback(Error("Failed to connect"));
+    }
   }
 
+  async sendScoreboardRequest(endpoint: string, body?: any): Promise<JSON> {
+    try {
+      let response = body == undefined ? await axios.get(this.url + endpoint) : await axios.post(this.url + endpoint, body);
+      this.platform.log.info("Done calling get input");
+      if (response.status != 200) {
+        this.platform.log.info("Error response");
+        return Promise.reject();
+      } else {
+        return response.data;
+      }
+    } catch (error) {
+      this.platform.log.info(error);
+      return Promise.reject();
+    }
+  }
 }
