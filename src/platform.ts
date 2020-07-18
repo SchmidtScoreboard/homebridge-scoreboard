@@ -87,7 +87,7 @@ export class SchmidtScoreboardPlatform implements DynamicPlatformPlugin {
         // the cached devices we stored in the `configureAccessory` method above
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-
+        var foundAccessories: string[] = [];
         if (existingAccessory) {
           // the accessory already exists
           this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
@@ -99,6 +99,7 @@ export class SchmidtScoreboardPlatform implements DynamicPlatformPlugin {
           // create the accessory handler for the restored accessory
           // this is imported from `platformAccessory.ts`
           new SchmidtScoreboardAccessory(this, existingAccessory);
+          foundAccessories.push(uuid);
 
         } else {
 
@@ -119,11 +120,17 @@ export class SchmidtScoreboardPlatform implements DynamicPlatformPlugin {
 
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          foundAccessories.push(uuid);
         }
       }
     } catch (error) {
-
     }
+    this.accessories
+      .filter((value) => !foundAccessories.find(id => id == value.UUID))
+      .map(accessory => {
+        this.log.info("Deleting accessory " + accessory.displayName);
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
+      });
 
     // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
     // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
