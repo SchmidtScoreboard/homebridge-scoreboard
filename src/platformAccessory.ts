@@ -2,13 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallb
 
 import { SchmidtScoreboardPlatform } from './platform';
 
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-
-enum ScoreboardMode {
-  Hockey = 0,
-  Baseball = 1,
-  Clock = 50
-}
+import axios from 'axios';
 
 
 /**
@@ -24,12 +18,12 @@ export class SchmidtScoreboardAccessory {
     private readonly platform: SchmidtScoreboardPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-    this.url = "http://" + this.accessory.displayName + ":5005/";
+    this.url = 'http://' + this.accessory.displayName + ':5005/';
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'MarkSchmidt')
-      .setCharacteristic(this.platform.Characteristic.Model, 'SS-001')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SS-001');
 
     this.service = this.accessory.getService(this.platform.Service.Television) ||
       this.accessory.addService(this.platform.Service.Television);
@@ -56,22 +50,24 @@ export class SchmidtScoreboardAccessory {
       .on('set', async (newValue, callback) => {
         this.platform.log.info('set Active Identifier => setNewValue: ' + newValue);
         try {
-          let response = await this.sendScoreboardRequest("setSport", { "sport": newValue });
+          await this.sendScoreboardRequest('setSport', { 'sport': newValue });
           callback(null);
         } catch {
-          callback(Error("Failed to connect"));
+          callback(Error('Failed to connect'));
         }
       })
       .on('get', async (callback) => {
         try {
-          let response = await this.sendScoreboardRequest("");
-          callback(null, response["screen_on"]);
+          const response = await this.sendScoreboardRequest('');
+          callback(null, response['screen_on']);
         } catch {
-          callback("Connection error");
+          callback('Connection error');
         }
       });
 
-    const hockeyService = this.accessory.getService("Hockey") || this.accessory.addService(this.platform.Service.InputSource, 'hockey', 'Hockey');
+    const hockeyService = this.accessory.getService('Hockey') ||
+      this.accessory.addService(this.platform.Service.InputSource, 'hockey', 'Hockey');
+
     hockeyService
       .setCharacteristic(this.platform.Characteristic.Identifier, 0)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Hockey')
@@ -80,7 +76,8 @@ export class SchmidtScoreboardAccessory {
       .setCharacteristic(this.platform.Characteristic.InputSourceType, this.platform.Characteristic.InputSourceType.HDMI);
     this.service.addLinkedService(hockeyService); // link to tv service
 
-    const baseballService = this.accessory.getService("Baseball") || this.accessory.addService(this.platform.Service.InputSource, 'baseball', 'Baseball');
+    const baseballService = this.accessory.getService('Baseball') ||
+      this.accessory.addService(this.platform.Service.InputSource, 'baseball', 'Baseball');
     baseballService
       .setCharacteristic(this.platform.Characteristic.Identifier, 1)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Baseball')
@@ -89,7 +86,8 @@ export class SchmidtScoreboardAccessory {
       .setCharacteristic(this.platform.Characteristic.InputSourceType, this.platform.Characteristic.InputSourceType.HDMI);
     this.service.addLinkedService(baseballService); // link to tv service
 
-    const clockService = this.accessory.getService("Clock") || this.accessory.addService(this.platform.Service.InputSource, 'clock', 'Clock');
+    const clockService = this.accessory.getService('Clock') ||
+      this.accessory.addService(this.platform.Service.InputSource, 'clock', 'Clock');
     clockService
       .setCharacteristic(this.platform.Characteristic.Identifier, 50)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Clock')
@@ -113,10 +111,10 @@ export class SchmidtScoreboardAccessory {
 
     // implement your own code to turn your device on/off
     try {
-      let response = await this.sendScoreboardRequest("setPower", { "screen_on": value });
+      await this.sendScoreboardRequest('setPower', { 'screen_on': value });
       callback(null);
     } catch {
-      callback(Error("Failed to connect"));
+      callback(Error('Failed to connect'));
     }
   }
 
@@ -135,19 +133,19 @@ export class SchmidtScoreboardAccessory {
    */
   async getOn(callback: CharacteristicGetCallback) {
     try {
-      let response = await this.sendScoreboardRequest("");
-      callback(null, response["screen_on"]);
+      const response = await this.sendScoreboardRequest('');
+      callback(null, response['screen_on']);
     } catch {
-      callback(Error("Failed to connect"));
+      callback(Error('Failed to connect'));
     }
   }
 
-  async sendScoreboardRequest(endpoint: string, body?: any): Promise<JSON> {
+  async sendScoreboardRequest(endpoint: string, body?): Promise<JSON> {
     try {
-      let response = body == undefined ? await axios.get(this.url + endpoint) : await axios.post(this.url + endpoint, body);
-      this.platform.log.info("Done calling get input");
-      if (response.status != 200) {
-        this.platform.log.info("Error response");
+      const response = body === undefined ? await axios.get(this.url + endpoint) : await axios.post(this.url + endpoint, body);
+      this.platform.log.info('Done calling get input');
+      if (response.status !== 200) {
+        this.platform.log.info('Error response');
         return Promise.reject();
       } else {
         return response.data;
