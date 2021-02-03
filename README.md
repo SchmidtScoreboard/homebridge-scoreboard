@@ -1,7 +1,7 @@
 
 <p align="center">
 
-<img src="http://schmidtscoreboard.com/assets/wordmark.svg" width="150">
+<img src="http://schmidtscoreboard.com/assets/wordmark.svg">
 
 </p>
 
