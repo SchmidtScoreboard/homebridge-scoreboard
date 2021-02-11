@@ -67,7 +67,6 @@ export class SchmidtScoreboardAccessory {
 
     const hockeyService = this.accessory.getService('Hockey') ||
       this.accessory.addService(this.platform.Service.InputSource, 'hockey', 'Hockey');
-
     hockeyService
       .setCharacteristic(this.platform.Characteristic.Identifier, 0)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Hockey')
@@ -85,6 +84,16 @@ export class SchmidtScoreboardAccessory {
       .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
       .setCharacteristic(this.platform.Characteristic.InputSourceType, this.platform.Characteristic.InputSourceType.HDMI);
     this.service.addLinkedService(baseballService); // link to tv service
+
+    const collegeBasketballService = this.accessory.getService('College Basketball') ||
+      this.accessory.addService(this.platform.Service.InputSource, 'college_basketball', 'College Basketball');
+    collegeBasketballService
+      .setCharacteristic(this.platform.Characteristic.Identifier, 2)
+      .setCharacteristic(this.platform.Characteristic.ConfiguredName, 'College Basketball')
+      .setCharacteristic(this.platform.Characteristic.CurrentVisibilityState, this.platform.Characteristic.CurrentVisibilityState.SHOWN)
+      .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
+      .setCharacteristic(this.platform.Characteristic.InputSourceType, this.platform.Characteristic.InputSourceType.HDMI);
+    this.service.addLinkedService(collegeBasketballService); // link to tv service
 
     const clockService = this.accessory.getService('Clock') ||
       this.accessory.addService(this.platform.Service.InputSource, 'clock', 'Clock');
